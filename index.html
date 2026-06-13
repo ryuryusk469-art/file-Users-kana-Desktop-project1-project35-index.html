@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japan Shopping Phrase Puzzle (Audio Edition)</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .phone-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+        .tab-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .tab-btn {
+            background-color: #e2e8f0;
+            color: #4a5568;
+            border: none;
+            padding: 8px 5px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background-color: #3182ce;
+            color: white;
+        }
+        .chat-box {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            height: 380px;
+            overflow-y: auto;
+            border: 1px solid #edf2f7;
+            padding: 12px;
+            border-radius: 12px;
+            background-color: #f7fafc;
+            margin-bottom: 15px;
+        }
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 16px;
+            max-width: 85%;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            cursor: pointer; /* クリックできることを示す */
+            transition: transform 0.1s, box-shadow 0.1s;
+            position: relative;
+        }
+        /* タップ時のフィードバック効果 */
+        .bubble:active {
+            transform: scale(0.98);
+        }
+        /* スピーカーアイコンの簡易表示用のスタイル */
+        .bubble::after {
+            content: '🔊';
+            position: absolute;
+            bottom: 5px;
+            right: 8px;
+            font-size: 0.7rem;
+            opacity: 0.3;
+        }
+        ruby {
+            ruby-position: over;
+        }
+        rt {
+            font-size: 0.6rem;
+            color: #718096;
+            letter-spacing: 0.5px;
+            padding-bottom: 1px;
+        }
+        .bubble-header {
+            font-size: 0.7rem;
+            color: #718096;
+            font-weight: bold;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .staff {
+            background-color: #feebc8;
+            color: #7c4103;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .staff:hover {
+            box-shadow: 0 2px 8px rgba(254,235,200,0.8);
+        }
+        .customer {
+            background-color: #e2e8f0;
+            color: #2d3748;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .customer:hover {
+            box-shadow: 0 2px 8px rgba(226,232,240,0.8);
+        }
+        .jp-text {
+            font-weight: bold;
+            display: block;
+        }
+        .en-text {
+            font-size: 0.8rem;
+            color: #4a5568;
+            display: block;
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+        .input-box {
+            display: flex;
+            gap: 5px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .insert-btn {
+            background-color: #48bb78;
+            color: white;
+            border: none;
+            padding: 0 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    <h1>Shopping Assistant 🛍️</h1>
+    
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="switchScene(1, this)">① 挨拶・案内</button>
+        <button class="tab-btn" onclick="switchScene(2, this)">② サイズ・色</button>
+        <button class="tab-btn" onclick="switchScene(3, this)">③ 試着室</button>
+    </div>
+    
+    <div class="chat-box" id="chat-display">
+        </div>
+
+    <div class="input-box" id="custom-input-area" style="display: none;">
+        <input type="text" id="item-input" value="黒いTシャツ" placeholder="探したいものを入力">
+        <button class="insert-btn" onclick="updateItemPhrase()">ハメ換える</button>
+    </div>
+</div>
+
+<script>
+    const labels = {
+        staff: '<span class="bubble-header">💁‍♀️ <ruby>店員<rt>てんいん</rt></ruby> Staff</span>',
+        customer: '<span class="bubble-header">🙋‍♂️ お客<rt>きゃく</rt>さん Customer</span>'
+    };
+
+    const scenes = {
+        1: [
+            { role: 'staff', jp: 'いらっしゃいませ。', en: 'Welcome! / Hello!' },
+            { role: 'staff', jp: '<ruby>何<rt>なに</rt></ruby>かお<ruby>探<rt>さが</rt></ruby>しですか？', en: 'Are you looking for something in particular?' },
+            { role: 'customer', jp: 'ちょっと<ruby>見<rt>み</rt></ruby>ているだけです。', en: "I'm just looking, thank you." },
+            { role: 'customer', jp: '<span id="find-jp">〜</span>をお<ruby>探<rt>さが</rt></ruby>ししているんですが。', en: "I'm looking for <span id='find-en'>~</span>." },
+            { role: 'customer', jp: '<span id="have-jp">〜</span>はありますか？', en: "Do you have <span id='have-en'>~</span>?" },
+            { role: 'staff', jp: 'ご<ruby>試着<rt>しちゃく</rt></ruby>はいかがですか？', en: 'Would you like to try it on?' },
+            { role: 'staff', jp: 'よろしければ、<ruby>試着室<rt>しちゃくしつ</rt></ruby>をどうぞ。', en: 'Please feel free to use the fitting room.' }
+        ],
+        2: [
+            { role: 'customer', jp: 'Mサイズはありますか？', en: 'Do you have a medium size?' },
+            { role: 'customer', jp: 'もう<ruby>少<rt>すこ</rt></ruby>し<ruby>大<rt>おお</rt></ruby>きい/<ruby>小<rt>ちい</rt></ruby>さいサイズはありますか？', en: 'Do you have a slightly bigger/smaller size?' },
+            { role: 'customer', jp: '<ruby>別<rt>べつ</rt></ruby>の<ruby>色<rt>いろ</rt></ruby>はありますか？', en: 'Do you have this in another color?' },
+            { role: 'customer', jp: '<ruby>黒<rt>くろ</rt></ruby>いのはありますか？', en: 'Do you have this in black?' },
+            { role: 'staff', jp: 'サイズはどれをお<ruby>探<rt>さが</rt></ruby>しですか？', en: 'What size are you looking for?' },
+            { role: 'staff', jp: 'ただいま<ruby>在庫<rt>ざいこ</rt></ruby>を<ruby>確認<rt>かくにん</rt></ruby>してまいります。', en: 'Let me check the stock for you right now.' },
+            { role: 'staff', jp: '<ruby>申<rt>もう</rt></ruby>し<ruby>訳<rt>わけ</rt></ruby>ありませんが、そのサイズは<ruby>売<rt>う</rt></ruby>り<ruby>切<rt>き</rt></ruby>れです。', en: "I'm sorry, but that size is sold out." }
+        ],
+        3: [
+            { role: 'customer', jp: '<ruby>試着<rt>しちゃく</rt></ruby>してもいいですか？', en: 'May I try this on?' },
+            { role: 'customer', jp: '<ruby>試着室<rt>しちゃくしつ</rt></ruby>はどこですか？', en: 'Where is the fitting room?' },
+            { role: 'staff', jp: 'いかがでしょうか？', en: 'How does it fit? / How do you like it?' },
+            { role: 'customer', jp: 'もう<ruby>少<rt>すこ</rt></ruby>し<ruby>大<rt>おお</rt></ruby>きいです。/<ruby>きつ<rt>きつ</rt></ruby>すぎます。', en: "It's a little big. / It's too tight." },
+            { role: 'customer', jp: 'ぴったりです！', en: 'It fits perfectly!' },
+            { role: 'staff', jp: 'お<ruby>似合<rt>にあ</rt></ruby>いですよ！', en: 'It really suits you!' },
+            { role: 'staff', jp: 'こちらのほうがお<ruby>似合<rt>にあ</rt></ruby>いかもしれません。', en: 'This one might suit you better.' },
+            { role: 'customer', jp: 'もう<ruby>少<rt>すこ</rt></ruby>し<ruby>考<rt>かんが</rt></ruby>えます。', en: "I'd like to think about it a little more." }
+        ]
+    };
+
+    // 音声読み上げ関数（ふりがな重複読み対策版）
+    function speakText(element, role) {
+        window.speechSynthesis.cancel();
+
+        const jpTextElement = element.querySelector('.jp-text');
+        
+        // 【対策】要素を一時的にコピーし、その中の <rt> タグ（ふりがな）をすべて消去する
+        const clone = jpTextElement.cloneNode(true);
+        const rts = clone.querySelectorAll('rt');
+        rts.forEach(rt => rt.remove());
+        
+        // ふりがなを取り除いた純粋な文字列だけを取得
+        const textToSpeak = clone.textContent || clone.innerText;
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = 'ja-JP';
+
+        if (role === 'staff') {
+            utterance.pitch = 1.2;
+            utterance.rate = 1.0;
+        } else {
+            utterance.pitch = 0.9;
+            utterance.rate = 1.0;
+        }
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function switchScene(sceneId, btnElement) {
+        const tabs = document.querySelectorAll('.tab-btn');
+        tabs.forEach(tab => tab.classList.remove('active'));
+        btnElement.classList.add('active');
+
+        const display = document.getElementById('chat-display');
+        display.innerHTML = '';
+
+        scenes[sceneId].forEach(item => {
+            const bubble = document.createElement('div');
+            bubble.className = `bubble ${item.role}`;
+            bubble.innerHTML = `
+                ${labels[item.role]}
+                <span class="jp-text">${item.jp}</span>
+                <span class="en-text">${item.en}</span>
+            `;
+            
+            bubble.addEventListener('click', function() {
+                speakText(this, item.role);
+            });
+
+            display.appendChild(bubble);
+        });
+
+        const inputArea = document.getElementById('custom-input-area');
+        if (sceneId === 1) {
+            inputArea.style.display = 'flex';
+            updateItemPhrase();
+        } else {
+            inputArea.style.display = 'none';
+        }
+    }
+
+    function updateItemPhrase() {
+        const text = document.getElementById('item-input').value;
+        const findJp = document.getElementById('find-jp');
+        const findEn = document.getElementById('find-en');
+        const haveJp = document.getElementById('have-jp');
+        const haveEn = document.getElementById('have-en');
+        
+        if(findJp) findJp.innerText = text;
+        if(findEn) findEn.innerText = text || '...';
+        if(haveJp) haveJp.innerText = text;
+        if(haveEn) haveEn.innerText = text || '...';
+    }
+
+    switchScene(1, document.querySelectorAll('.tab-btn')[0]);
+</script>
+
+</body>
+</html>
